@@ -3,6 +3,7 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import dayjs from "dayjs";
 import dotenv from "dotenv";
+import Joi from "joi";
 
 const app = express();
 app.use(cors());
@@ -37,11 +38,21 @@ app.post("/participants", async(req,res) => {
         const participant = await db.collection("participants").findOne({name: name})
         if(participant) return res.sendStatus(409)
         
+        const schemaParticipant = Joi.object({
+            name: Joi.string().required(),
+            lastStatus: Joi.required()
+        })
+
         const novoParticipant = {
             name: name,
             lastStatus: Date.now()
         }
         
+        const validation = schemaParticipant.validate(novoParticipant, {abortEarly: false});
+        if(validation.error){
+            const errors = validation.error.details.map(detail => detail.message);
+            return res.status(422).send(errors); 
+        }
         await db.collection("participants").insertOne(novoParticipant)
         
         const novoParticipantMsg = {
@@ -51,7 +62,9 @@ app.post("/participants", async(req,res) => {
             type: 'status',
             time: dayjs().format('HH:mm:ss')
         }
+        
         await db.collection("messages").insertOne(novoParticipantMsg)    
+        
         return res.sendStatus(201)        
     } catch (err) {
         return res.status(500).send(err.message)
