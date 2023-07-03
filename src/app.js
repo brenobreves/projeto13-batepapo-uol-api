@@ -166,7 +166,7 @@ async function updateParticipants(){
             }
         ));
         await db.collection("participants").deleteMany({lastStatus: {$lt:time}})
-        await db.collection("message").insertMany(exitMessages)
+        await db.collection("messages").insertMany(exitMessages)
     } catch (error) {
         console.log("Update Participants error");
     }
