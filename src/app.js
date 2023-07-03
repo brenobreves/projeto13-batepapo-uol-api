@@ -74,7 +74,7 @@ app.post("/participants", async(req,res) => {
 //Post messages
 app.post("/messages", async(req,res) => {
     const {to, text, type} = req.body;
-    const from = req.headers.user;
+    const from = req.headers.User;
     try {
         const participant = await db.collection("participants").findOne({name: from})
         if(!participant) return res.sendStatus(422)
@@ -107,7 +107,7 @@ app.post("/messages", async(req,res) => {
 
 //Get messages
 app.get("/messages", async(req,res) => {
-    const from = req.headers.user;
+    const from = req.headers.User;
     let limit = req.query.limit;
     if(limit){
         limit = parseInt(limit);
@@ -135,7 +135,7 @@ app.get("/messages", async(req,res) => {
 
 //Post status
 app.post("/status", async(req,res) => {
-    const name = req.headers.user;
+    const name = req.headers.User;
     if(!name){
         return res.sendStatus(404);
     }
@@ -149,6 +149,30 @@ app.post("/status", async(req,res) => {
     }
 
 })
+
+async function updateParticipants(){
+    let time = Date.now();
+    time -= 10000;
+    try {
+        const remover = await db.collection("participants").find({lastStatus: {$lt:time}}).toArray()
+        if(remover.length < 1) return
+        const exitMessages = remover.map(participant => (
+            {
+                from: `${participant.name}`,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs().format('HH:mm:ss')
+            }
+        ));
+        await db.collection("participants").deleteMany({lastStatus: {$lt:time}})
+        await db.collection("message").insertMany(exitMessages)
+    } catch (error) {
+        console.log("Update Participants error");
+    }
+}
+
+setInterval(updateParticipants,1000);
 
 const PORT = 5000;
 app.listen(PORT , () => console.log(`App rodando na porta ${PORT}`));
