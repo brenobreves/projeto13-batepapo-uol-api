@@ -74,7 +74,7 @@ app.post("/participants", async(req,res) => {
 //Post messages
 app.post("/messages", async(req,res) => {
     const {to, text, type} = req.body;
-    const from = req.headers.User;
+    const from = req.headers.user;
     try {
         const participant = await db.collection("participants").findOne({name: from})
         if(!participant) return res.sendStatus(422)
@@ -107,7 +107,7 @@ app.post("/messages", async(req,res) => {
 
 //Get messages
 app.get("/messages", async(req,res) => {
-    const from = req.headers.User;
+    const from = req.headers.user;
     let limit = req.query.limit;
     if(limit){
         limit = parseInt(limit);
@@ -135,7 +135,7 @@ app.get("/messages", async(req,res) => {
 
 //Post status
 app.post("/status", async(req,res) => {
-    const name = req.headers.User;
+    const name = req.headers.user;
     if(!name){
         return res.sendStatus(404);
     }
