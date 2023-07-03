@@ -128,9 +128,26 @@ app.get("/messages", async(req,res) => {
         }        
         const limitedMessages = allMessages.slice(-limit);
         return res.send(limitedMessages);
-    } catch (error) {
+    } catch (err) {
         return res.status(500).send(err.message)
     }
+})
+
+//Post status
+app.post("/status", async(req,res) => {
+    const name = req.headers.user;
+    if(!name){
+        return res.sendStatus(404);
+    }
+    try {
+        const participant = await db.collection("participants").findOne({name})
+        if(!participant) return res.sendStatus(404)
+        db.collection("participants").updateOne({name: name},{$set:{lastStatus: Date.now()}})
+        return res.sendStatus(200) 
+    } catch (err) {
+        return res.status(500).send(err.message)
+    }
+
 })
 
 const PORT = 5000;
