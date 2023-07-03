@@ -71,6 +71,68 @@ app.post("/participants", async(req,res) => {
     }
 })
 
+//Post messages
+app.post("/messages", async(req,res) => {
+    const {to, text, type} = req.body;
+    const from = req.headers.user;
+    try {
+        const participant = await db.collection("participants").findOne({name: from})
+        if(!participant) return res.sendStatus(422)
+        const novaMsg = {
+            from,
+            to,
+            text,
+            type,
+            time: dayjs().format('HH:mm:ss')
+        }
+        const schemaMsg = Joi.object({
+            from: Joi.required(),
+            to: Joi.string().required(),
+            text: Joi.string().required(),
+            type: Joi.string().valid("message", "private_message").required(),
+            time: Joi.required()
+        })
+        const validation = schemaMsg.validate(novaMsg, {abortEarly: false});
+        if(validation.error){
+            const errors = validation.error.details.map(detail => detail.message);
+            return res.status(422).send(errors);
+        }
+        await db.collection("messages").insertOne(novaMsg)
+        return res.sendStatus(201);
+    } catch (err) {
+        return res.status(500).send(err.message)
+        
+    }
+})
+
+//Get messages
+app.get("/messages", async(req,res) => {
+    const from = req.headers.user;
+    let limit = req.query.limit;
+    if(limit){
+        limit = parseInt(limit);
+        if(isNaN(limit) || limit < 1){
+            return res.sendStatus(422);
+        }
+    }    
+    try {
+        const allMessages = await db.collection("messages").find({
+            $or:[
+                {to:from},
+                {from:from},
+                {to:"Todos"}
+            ]
+        }).toArray();
+        if(!limit){
+            return res.send(allMessages);
+        }        
+        const limitedMessages = allMessages.slice(-limit);
+        return res.send(limitedMessages);
+    } catch (error) {
+        return res.status(500).send(err.message)
+    }
+})
+
 const PORT = 5000;
 app.listen(PORT , () => console.log(`App rodando na porta ${PORT}`));
 
